@@ -1,0 +1,25 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "lab1_task0_test_environment",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "./task0_test_environment.py",
+            "console": "integratedTerminal",
+            // "args": "${command:pickArgs}",
+            "justMyCode": true,
+            "python": "/opt/miniconda3/envs/games105/bin/python",
+        },
+        {
+            "name": "lab1_task1_forward_kinematics",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "./task1_forward_kinematics.py",
+            "console": "integratedTerminal",
+            // "args": "${command:pickArgs}",
+            // "justMyCode": true,
+            "python": "/opt/miniconda3/envs/games105/bin/python",
+        }
+    ]
+}
