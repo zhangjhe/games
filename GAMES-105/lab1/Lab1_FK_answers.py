@@ -1,14 +1,19 @@
 import numpy as np
 from scipy.spatial.transform import Rotation as R
 
-# class joint:
-#     def __init__(self, parent):
-#         self.parent = parent
+class Joint:
+    def __init__(self, name):
+        self.idx = 0
+        self.name = name
+        self.children = []
+        self.offset = None
+        self.channel = None
+        self.parent_idx = None
+
+
 
 
 # class Motion:
-
-def parse_joint()
 
 def load_motion_data(bvh_file_path):
     """part2 辅助函数，读取bvh文件"""
@@ -27,21 +32,73 @@ def load_motion_data(bvh_file_path):
     return motion_data
 
 
-def parse_line(file, line):
-    tokens = []
+def _deserialize_offset(file):
+    tokens = _parse_line(file) # read offset
+    if tokens[0] == "OFFSET":
+        return tokens[1:]
+    else:
+        raise SyntaxError("no joint offset! ")
 
-    while len(tokens) < 1:
-        line += 1
-        tokens = file.readline().strip().split()
+
+def _deserialize_channel(file):
+    tokens = _parse_line(file)
+
+    if tokens[0] == "CHANNELS":
+        return tokens[1:]
+    else:
+        raise SyntaxError(f"no joint channels! ")
+
+
+def _parse_joint(joint_name, file, is_end=False):
+    joint = Joint(joint_name)
+
+    tokens = _parse_line(file) # reading '{'
     
-    return tokens, line
+    joint.offset = _deserialize_offset(file) # reading offsets
+    
+    if not is_end:
+        joint.channel = _deserialize_channel(file) # reading channels
+
+    while True:
+        tokens = _parse_line(file) # reading next line
+        if tokens[0] == "JOINT":
+            joint.children.append(_parse_joint(tokens[1], file))
+        elif tokens[0] == "End":
+            joint.children.append(_parse_joint(joint.name + '_end', file, is_end=True))
+        elif tokens[0] == "}":
+            break
+        else:
+            raise SyntaxError(f"Joint definition must end with an child joint, end site or closing bracket.")
+
+    return joint
+
+
+def _parse_line(file):
+    tokens = []
+    while len(tokens) < 1:
+        tokens = file.readline().strip().split()
+        print(tokens)
+    return tokens
+
+
+def _from_hierarchy(joint, joint_name, joint_parent, joint_offset, parent_index=-1):
+    current_index = len(joint_name)  # 当前节点的索引
+    joint_name.append(joint.name)
+    joint_parent.append(parent_index)
+    joint_offset.append(joint.offset)
+
+    for child in joint.children:
+        _from_hierarchy(child, joint_name, joint_parent, joint_offset, current_index)
+
+    return joint_name, joint_parent, joint_offset
+
 
 def part1_calculate_T_pose(bvh_file_path):
     """请填写以下内容
     输入： bvh 文件路径
     输出:
         joint_name: List[str]，字符串列表，包含着所有关节的名字
-        joint_parent: List[int]，整数列表，包含着所有关节的父关节的索引,根节点的父关节索引为-1
+        joint_parent: List[int]，整数列表，包含着所有关节的父关节的索引，根节点的父关节索引为-1
         joint_offset: np.ndarray，形状为(M, 3)的numpy数组，包含着所有关节的偏移量
 
     Tips:
@@ -49,20 +106,12 @@ def part1_calculate_T_pose(bvh_file_path):
     """
     with open(bvh_file_path, 'r') as bvh_file:
         
-        tokens, line = parse_line(bvh_file, 0)
-        if tokens[0] != "HIERARCHY":
-            raise SyntaxError("bvh must start with 'HIERARCHY'!")
-        
-        tokens, line = parse_line(bvh_file, line)
-        if tokens[0] != "ROOT":
-            raise SyntaxError("first joint must start with 'ROOT'!")
+        tokens = _parse_line(bvh_file) # reading "Hierarchy"
+        root_tokens = _parse_line(bvh_file) 
+        root = _parse_joint('RootJoint', bvh_file)
 
-
-
-    joint_name = None
-    joint_parent = None
-    joint_offset = None
-    return joint_name, joint_parent, joint_offset
+    joint_name, joint_parent, joint_offset = _from_hierarchy(root, [], [], [])
+    return joint_name, joint_parent, np.array(joint_offset)
 
 
 def part2_forward_kinematics(joint_name, joint_parent, joint_offset, motion_data, frame_id):

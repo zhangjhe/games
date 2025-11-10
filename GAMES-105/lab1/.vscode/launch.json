@@ -21,5 +21,15 @@
             // "justMyCode": true,
             "python": "/opt/miniconda3/envs/games105/bin/python",
         }
+        {
+            "name": "win-lab1-task1_forward_kinematics",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "./task1_forward_kinematics.py",
+            "console": "integratedTerminal",
+            // "args": "${command:pickArgs}",
+            // "justMyCode": true,
+            "python": "C:/Users/Jinghe Zhang/.conda/envs/games105/python.exe",
+        }
     ]
 }
