@@ -114,6 +114,7 @@ def part1_calculate_T_pose(bvh_file_path):
     return joint_name, joint_parent, np.array(joint_offset)
 
 
+
 def part2_forward_kinematics(joint_name, joint_parent, joint_offset, motion_data, frame_id):
     """请填写以下内容
     输入: part1 获得的关节名字，父节点列表，偏移量列表
@@ -126,9 +127,47 @@ def part2_forward_kinematics(joint_name, joint_parent, joint_offset, motion_data
         1. joint_orientations的四元数顺序为(x, y, z, w)
         2. from_euler时注意使用大写的XYZ
     """
-    joint_positions = None
-    joint_orientations = None
-    return joint_positions, joint_orientations
+    
+    joint_positions = []
+    joint_orientations = []
+    frame_data = motion_data[frame_id]
+    rots = []
+    
+    target = 0
+    for joint in joint_name:
+        if joint.endswith("_end"):
+            rots.append(None)
+        else:
+            rots.append(R.from_euler("XYZ", frame_data[ 3 + target*3 : 3 + (target+1)*3 ]))
+            target += 1
+
+
+    # apply rotation to joints
+    for i, joint in enumerate(joint_name):
+        if i == 0:
+            joint_orientations.append(rots[i])
+            joint_positions.append(frame_data[:3])
+            continue
+
+        if joint.endswith('_end'):
+            joint_orientations.append(joint_orientations[joint_parent[i]])
+        else:
+            joint_orientations.append(
+                joint_orientations[joint_parent[i]] * rots[i]
+            )
+
+        Q = joint_orientations[i]
+        l = np.array(joint_offset[i],dtype=np.float64)
+        Ql = Q.apply(l)
+        joint_positions.append(
+            joint_positions[joint_parent[i]] +  Ql
+        )
+
+    for i, _ in enumerate(joint_orientations):
+        joint_orientations[i] = joint_orientations[i].as_quat()
+
+
+    return np.array(joint_positions), np.array(joint_orientations)
 
 
 def part3_retarget_func(T_pose_bvh_path, A_pose_bvh_path):
